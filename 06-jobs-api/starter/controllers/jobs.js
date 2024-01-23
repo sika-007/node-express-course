@@ -1,21 +1,76 @@
+const Job = require("../models/Job");
+const { StatusCodes } = require("http-status-codes");
+const { BadRequestError, NotFoundError } = require("../errors");
+
+const createJob = async (req, res) => {
+  req.body.createdBy = req.user.userId;
+  const job = await Job.create(req.body);
+  res.status(StatusCodes.CREATED).json({ job });
+};
+
 const getAllJobs = async (req, res) => {
-  res.send({ user: req.user });
+  req.body.createdBy = req.user.userId;
+  const { createdBy } = req.body;
+  const jobs = await Job.find({ createdBy }).sort("createdAt");
+  res.status(StatusCodes.OK).json({ jobs, count: jobs.length });
 };
 
 const getJob = async (req, res) => {
-  res.send({ user: req.user });
-};
+  const {
+    user: { userId },
+    params: { id },
+  } = req;
 
-const createJob = async (req, res) => {
-  res.send("Create job");
+  const job = await Job.findOne({ createdBy: userId, _id: id });
+
+  if (!job) {
+    throw new NotFound("This job does not exist");
+  }
+
+  res.status(StatusCodes.OK).json({ job });
 };
 
 const updateJob = async (req, res) => {
-  res.send("Update jobs");
+  const {
+    user: { userId },
+    params: { id },
+    body: { company, position, status },
+  } = req;
+
+  if (company === "" || position === "" || status === "") {
+    throw new BadRequestError(
+      "Company and position fields cannot be left empty"
+    );
+  }
+
+  const job = await Job.findOneAndUpdate(
+    { _id: id, createdBy: userId },
+    { company, position, status },
+    { runValidators: true, new: true }
+  );
+
+  if (!job) {
+    throw new NotFoundError("Job does not exist");
+  }
+
+  res.status(StatusCodes.OK).json(job);
 };
 
 const deleteJob = async (req, res) => {
-  res.send("Delete job");
+  const {
+    params: { id },
+    user: { userId },
+  } = req;
+
+  const job = await Job.findOneAndDelete({ _id: id, createdBy: userId });
+
+  if (!job) {
+    throw new NotFoundError("This job does not exist");
+  }
+
+  console.log(id, userId);
+
+  return res.status(StatusCodes.OK).json({ msg: "Successfully deleted" });
 };
 
 module.exports = {

@@ -15,7 +15,7 @@ const auth = async (req, res, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET_DEVELOPMENT);
     // req.user = await User.findById(payload.userId).select("-password");  -   This is just an option to source the user directly from the database
     req.user = { userId: payload.userId, name: payload.name };
-    console.log(req.user);
+    // console.log(req.user);
     next();
   } catch (err) {
     throw new UnauthenticatedError("Authentication Invalid");
